@@ -12,10 +12,12 @@ import pandas as pd
 hyperparameter_defaults = dict(
     dropout = 0.5,
     hd1 = 16,
+    lv1 = 32,
     bt = 100,
     learning_rate = 0.001,
     epochs = 200,
 )
+wandb.init(config=hyperparameter_defaults, project="myae1")
 config = wandb.config
 num_epochs=config.epochs        #
 batch_size =config.bt  #

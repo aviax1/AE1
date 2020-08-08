@@ -8,25 +8,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-(xtrain,ytrain), (xtest,ytest) = mnist.load_data()
 hyperparameter_defaults = dict(
     dropout = 0.5,
-    hd1 = 16,
-    lv1 = 32,
-    bt = 100,
+    channels_one = 16,
+    channels_two = 32,
+    batch_size = 100,
     learning_rate = 0.001,
-    epochs = 200,
-)
-wandb.init(config=hyperparameter_defaults, project="myae1")
+    epochs = 2,
+    )
+wandb.init(config=hyperparameter_defaults)
 config = wandb.config
+(xtrain,ytrain), (xtest,ytest) = mnist.load_data()
 num_epochs=config.epochs        #
-batch_size =config.bt  #
+batch_size = config.batch_size        #
 image_size=784         #
-hidden_size=config.hd1 #
-lv_size = 48           # Latent Variable 
-learning_rate=config.learning_rate     #
+hidden_size=config.channels_one         #
+lv_size = 32           # Latent Variable 
+learning_rate=config.learning_rate   #
 cret = nn.MSELoss()    # criterion
 warnings.filterwarnings('ignore')
+
 
 class autoencoder(nn.Module):
     def __init__(self):
@@ -36,20 +37,20 @@ class autoencoder(nn.Module):
             nn.ReLU(True), nn.Linear(hidden_size, hidden_size),
             nn.ReLU(True), nn.Linear(hidden_size, hidden_size),
             nn.ReLU(True), nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(True), nn.Linear(hidden_size, lv_size))
-        self.dropout = nn.Dropout(p=config.dropout)
+             nn.ReLU(True), nn.Linear(hidden_size, lv_size))
         self.decoder = nn.Sequential(
             nn.Linear(lv_size, hidden_size),nn.ReLU(True),
             nn.Linear(hidden_size, hidden_size),nn.ReLU(True),
             nn.Linear(hidden_size, hidden_size),nn.ReLU(True),
             nn.Linear(hidden_size, hidden_size),nn.ReLU(True),
-            nn.Linear(hidden_size, image_size), nn.Tanh())
+             nn.Linear(hidden_size, image_size), nn.Tanh())
+        self.dropout = nn.Dropout(p=config.dropout)
 
     def forward(self, x):
         return self.decoder(self.encoder(x))
-      
+    
+
 model = autoencoder()
-wandb.watch(model)
 tmodel=autoencoder()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model.to(device)
@@ -67,7 +68,8 @@ class DigitDataSet(Dataset):
       if torch.is_tensor(idx):
           idx = idx.tolist()
       return self.transform( self.dataset[idx,:,:])
-    
+
+
 
 def model_name(digit):
   return './ae_'+str(digit)+'.pth'
@@ -105,7 +107,6 @@ def testmodel():
   return counts, bins ,len(ytest[min_index != ytest]) , len(ytest)
 
 
-
 def save_model(digit,model):
   mn=model_name(digit)
   torch.save(model.state_dict(),mn )
@@ -121,8 +122,9 @@ def load_model_ifexist(digit,model):
 
 def train_by_digit(by_digit,model,ne=num_epochs,opt=optimizer):
   model=load_model_ifexist( by_digit,model)
+
   print("*****\nstart traning Model for digit " +str(by_digit) +"\n")
-  dataloader = DataLoader(DigitDataSet(xtrain[ytrain==by_digit]), batch_size=config.bt,shuffle=True, num_workers=6)
+  dataloader = DataLoader(DigitDataSet(xtrain[ytrain==by_digit]), batch_size=batch_size,shuffle=True, num_workers=6)
   for epoch in range(ne):
     run=  epoch%25==0
     run2= epoch%125==0 and epoch >0
@@ -147,7 +149,8 @@ def train_by_digit(by_digit,model,ne=num_epochs,opt=optimizer):
     wandb.log({"loss": loss.data})
   save_model(by_digit,model)
   print("\nfinish traning Model Number " +str(by_digit) +"\n*****\n")
-  
-
+    
+    
+    
 for by_digit in range(10):
-  train_by_digit(by_digit,model,120)
+  train_by_digit(by_digit,model,config.epochs)

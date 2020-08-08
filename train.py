@@ -1,4 +1,3 @@
-!pip install wandb
 import torch,wandb,os,warnings,csv
 import torch.nn as nn
 import torchvision.transforms as transforms
@@ -17,8 +16,6 @@ hyperparameter_defaults = dict(
     learning_rate = 0.001,
     epochs = 200,
 )
-wandb.init(config=hyperparameter_defaults, project="ae1")
-
 config = wandb.config
 num_epochs=config.epochs        #
 batch_size =config.bt  #
